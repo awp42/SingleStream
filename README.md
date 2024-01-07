@@ -1,8 +1,14 @@
 # Single Stream
 A tool for deciding what to watch on plex. 
 
-* RandomUnwatched.py
-  ```A script that will add first unwatched episode of a given plex collection to a playlist, episodes are weighted based on time since watching and then randomly selected```
+# Unraid Setup
+1. Install NerdPack GUI
+2. Enable Python3 
+3. Enable Python pip 
+4. Create /user/mnt/script ```mkdir -p /mnt/user/scripts``` 
+5. Save RandomUnwatched.py / plex_config.ini to scripts
+6. Configure per the below
+7. Run script in Unraid console ```cd /mnt/user/scripts``` then ```python3 RandomUnwatched.py```
 
 # plex_config.py
 PLEX_URL = http://x.x.x.x:32400 ```url of your plex server``` <br />
@@ -10,6 +16,8 @@ PLEX_TOKEN = 123ABcdEf567 ```Token of your plex server```<br />
 NUMBER_OF_SHOWS = 5 ```total number of episodes that will be in the final playlist```<br />
 <br />
 # RandomUnwatched.py
+ ```A script that will add first unwatched episode of a given plex collection to a playlist, episodes are randomly selected based on a weighted value. The script will delete and recreate the Playlist each time it is run.```
+ 
 The following can be changed in the script
 <br />
 <br />
