@@ -17,5 +17,6 @@ The following can be changed in the script
 COLLECTION_NAME = 'Current Shows' ```name of the collection in Plex that is to be used to populate the playlists``` <br />
 MY_PLAYLIST = 'Single Stream' ```The name of the playlist that will be created``` <br />
 LIBRARY_NAME = 'TV Shows' ```The name of the library where the TV Shows are located in Plex``` <br />
+NUMBER_OF_EP_OVERRIDE = '0' ```This can be changed to limit the number of shows that will be on the playlist. By default the list will continue one entry for each show within the collection``` <br />
 <br />
 
