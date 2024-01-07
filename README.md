@@ -1,5 +1,5 @@
-# PlexScripts
-
+# Single Stream
+A tool for deciding what to watch on plex. 
 
 * RandomUnwatched.py
   ```A script that will add first unwatched episode of a given plex collection to a playlist, episodes are weighted based on time since watching and then randomly selected```
