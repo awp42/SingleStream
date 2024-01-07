@@ -12,7 +12,7 @@ A tool for deciding what to watch on plex.
 
 # plex_config.py
 PLEX_URL = http://x.x.x.x:32400 ```url of your plex server``` <br />
-PLEX_TOKEN = 123ABcdEf567 ```Token of your plex server. Instructions to find [here](https://support.plex.tv/articles/204059436-finding-an-authentication-token-x-plex-token/)```<br />
+PLEX_TOKEN = 123ABcdEf567 ```Token of your plex server. ``` Instructions to find this can be found [here](https://support.plex.tv/articles/204059436-finding-an-authentication-token-x-plex-token)<br />
 NUMBER_OF_SHOWS = 5 ```total number of episodes that will be in the final playlist```<br />
 <br />
 # RandomUnwatched.py
