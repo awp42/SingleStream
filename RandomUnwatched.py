@@ -22,12 +22,22 @@ NUMBER_OF_EP_OVERRIDE = 0
 plex = PlexServer(baseurl, token)
 tv_shows_section = plex.library.section(LIBRARY_NAME)
 
-# CODE
-# Check if playlist exists, if it does, remove so that it can be repopulated
+# Find or create the playlist
+existing_playlist = None
 for playlist in plex.playlists():
     if playlist.title == MY_PLAYLIST:
-        print('{} already exists. Deleting and rebuilding.'.format(MY_PLAYLIST))
-        playlist.delete()
+        existing_playlist = playlist
+        break
+
+if not existing_playlist:
+    # If the playlist doesn't exist, create an empty one
+    plex.createPlaylist(MY_PLAYLIST, items=[])
+    # Now fetch the newly created playlist
+    for playlist in plex.playlists():
+        if playlist.title == MY_PLAYLIST:
+            existing_playlist = playlist
+            break
+
 
 show_weighted_episodes = {}
 
@@ -78,8 +88,14 @@ if NUMBER_OF_EP_OVERRIDE <= 0:
 # Perform weighted selection without replacement
 final_playlist = weighted_show_selection(show_weighted_episodes, NUMBER_OF_EP_OVERRIDE)
 
-print(f'Adding {len(final_playlist)} shows to playlist.')
 if final_playlist:
-    plex.createPlaylist(MY_PLAYLIST, items=final_playlist)
+    print(f'Updating {len(final_playlist)} shows to playlist.')
+
+    # Remove all current items from the playlist
+    existing_playlist.removeItems(existing_playlist.items())
+
+    # Add new items to the playlist
+    existing_playlist.addItems(final_playlist)
 else:
     print("No unwatched episodes available to add to the playlist.")
+
