@@ -1,54 +1,51 @@
-# Update these:
-# The name of the Collection of shows in Plex
-COLLECTION_NAME = 'Current Shows'
-# The name of the wanted playlist in Plex
-MY_PLAYLIST = 'Single Stream'
-# The name of the Library in Plex
-LIBRARY_NAME = 'TV Shows'
-
 import os
 import datetime
 import random
+import logging
 from plexapi.server import PlexServer
 import configparser
 
-# Import settings
-plex_config = configparser.ConfigParser()
-plex_config.read("plex_config.ini")
-baseurl = plex_config.get('plex_config', 'PLEX_URL')
-token = plex_config.get('plex_config', 'PLEX_TOKEN')
-NUMBER_OF_EP_OVERRIDE = 0
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-plex = PlexServer(baseurl, token)
-tv_shows_section = plex.library.section(LIBRARY_NAME)
+def read_config():
+    plex_config = configparser.ConfigParser()
+    plex_config.read("plex_config.ini")
+    return plex_config.get('plex_config', 'PLEX_URL'), plex_config.get('plex_config', 'PLEX_TOKEN')
 
-# Find or create the playlist
-existing_playlist = None
-for playlist in plex.playlists():
-    if playlist.title == MY_PLAYLIST:
-        existing_playlist = playlist
-        break
+def get_plex_server(baseurl, token):
+    try:
+        return PlexServer(baseurl, token)
+    except Exception as e:
+        logging.error(f"Error connecting to Plex Server: {e}")
+        return None
 
-if not existing_playlist:
-    # If the playlist doesn't exist, create an empty one
-    plex.createPlaylist(MY_PLAYLIST, items=[])
-    # Now fetch the newly created playlist
+def find_or_create_playlist(plex, playlist_name):
     for playlist in plex.playlists():
-        if playlist.title == MY_PLAYLIST:
-            existing_playlist = playlist
-            break
+        if playlist.title == playlist_name:
+            return playlist
+    try:
+        return plex.createPlaylist(playlist_name, items=[])
+    except Exception as e:
+        logging.error(f"Error creating playlist: {e}")
+        return None
 
+def get_unwatched_episodes(plex, library_name, collection_name):
+    show_weighted_episodes = {}
+    try:
+        tv_shows_section = plex.library.section(library_name)
+        for collection in tv_shows_section.collection(collection_name):
+            process_collection(collection, show_weighted_episodes)
+    except Exception as e:
+        logging.error(f"Error processing collection: {e}")
+    return show_weighted_episodes
 
-show_weighted_episodes = {}
-
-for collection in tv_shows_section.collection(COLLECTION_NAME):
+def process_collection(collection, show_weighted_episodes):
     tv_show = collection.title
-
-    # Skip this show if we've already added an episode from it
     if tv_show in show_weighted_episodes:
-        continue
+        return
 
-    all_seasons = plex.library.section(LIBRARY_NAME).get(tv_show).seasons()
+    all_seasons = collection.seasons()
     for season in all_seasons:
         all_eps = season.episodes()
         for episode in all_eps:
@@ -56,46 +53,60 @@ for collection in tv_shows_section.collection(COLLECTION_NAME):
                 last_watched_at = episode.lastViewedAt or datetime.datetime.min
                 time_since_watched = datetime.datetime.now() - last_watched_at
                 weight = time_since_watched.total_seconds()
-                
-                # Store the episode and its weight, keyed by the show's title
                 show_weighted_episodes[tv_show] = (episode, weight)
                 break
         if tv_show in show_weighted_episodes:
-            break  # Break if we've added an episode for this show
+            break
 
 def weighted_show_selection(shows, num_selections):
     selected_episodes = []
     while len(selected_episodes) < num_selections and shows:
         total_weight = sum(weight for show, (episode, weight) in shows.items())
         if total_weight == 0:
-            break  # Avoid division by zero
+            break
 
         r = random.uniform(0, total_weight)
         upto = 0
         for show, (episode, weight) in shows.items():
             if upto + weight >= r:
                 selected_episodes.append(episode)
-                del shows[show]  # Remove this show from the dictionary
+                del shows[show]
                 break
             upto += weight
-
     return selected_episodes
 
-if NUMBER_OF_EP_OVERRIDE <= 0:
-    NUMBER_OF_EP_OVERRIDE = len(show_weighted_episodes)
-    print(f"Setting NUMBER_OF_EP_OVERRIDE to the number of unique shows: {NUMBER_OF_EP_OVERRIDE}")
+def update_playlist(playlist, episodes):
+    try:
+        playlist.removeItems(playlist.items())
+        playlist.addItems(episodes)
+    except Exception as e:
+        logging.error(f"Error updating playlist: {e}")
 
-# Perform weighted selection without replacement
-final_playlist = weighted_show_selection(show_weighted_episodes, NUMBER_OF_EP_OVERRIDE)
+def main():
+    COLLECTION_NAME = 'Current Shows'
+    MY_PLAYLIST = 'Single Stream'
+    LIBRARY_NAME = 'TV Shows'
+    NUMBER_OF_EP_OVERRIDE = 0
 
-if final_playlist:
-    print(f'Updating {len(final_playlist)} shows to playlist.')
+    baseurl, token = read_config()
+    plex = get_plex_server(baseurl, token)
+    if not plex:
+        return
 
-    # Remove all current items from the playlist
-    existing_playlist.removeItems(existing_playlist.items())
+    existing_playlist = find_or_create_playlist(plex, MY_PLAYLIST)
+    if not existing_playlist:
+        return
 
-    # Add new items to the playlist
-    existing_playlist.addItems(final_playlist)
-else:
-    print("No unwatched episodes available to add to the playlist.")
+    show_weighted_episodes = get_unwatched_episodes(plex, LIBRARY_NAME, COLLECTION_NAME)
+    if NUMBER_OF_EP_OVERRIDE <= 0:
+        NUMBER_OF_EP_OVERRIDE = len(show_weighted_episodes)
 
+    final_playlist = weighted_show_selection(show_weighted_episodes, NUMBER_OF_EP_OVERRIDE)
+    if final_playlist:
+        logging.info(f'Updating {len(final_playlist)} shows to playlist.')
+        update_playlist(existing_playlist, final_playlist)
+    else:
+        logging.info("No unwatched episodes available to add to the playlist.")
+
+if __name__ == "__main__":
+    main()
