@@ -2,7 +2,7 @@
 A tool for deciding what to watch on plex. 
 
 # Unraid Setup
-1. Install NerdPack GUI
+1. Install NerdPack GUI from Community Apps
 2. Enable Python3 
 3. Enable Python pip 
 4. Create /user/mnt/script ```mkdir -p /mnt/user/scripts``` 
